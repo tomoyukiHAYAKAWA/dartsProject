@@ -17,6 +17,14 @@ int main(int argc, const char * argv[])
 {
     // 入力映像
     cv::VideoCapture inputVideo(FILE_NAME);
+    
+    // 動画の縦横サイズの取得
+    int videoWidth = inputVideo.get(CV_CAP_PROP_FRAME_WIDTH);
+    int videoHeight = inputVideo.get(CV_CAP_PROP_FRAME_HEIGHT);
+    double fps = inputVideo.get(CV_CAP_PROP_FPS);
+    
+    cv::VideoWriter writer("resultVideo.mp4", cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, cv::Size(videoWidth, videoHeight));
+    
     int frameCount = inputVideo.get(CV_CAP_PROP_FRAME_COUNT);
     int nowFrame = 0;
 
@@ -30,7 +38,7 @@ int main(int argc, const char * argv[])
     // 座標記録配列
     std::vector<cv::Point> flightPoint;
     // 初期値の入力
-    flightPoint.push_back(cv::Point(1000,1000));
+    flightPoint.push_back(cv::Point(videoWidth, videoHeight));
     
     std::vector<cv::Scalar> colorArray;
     colorArray.push_back(cv::Scalar(0, 0, 0));
@@ -115,6 +123,7 @@ int main(int argc, const char * argv[])
             // 画像保存
             cv::imwrite("result.jpg", frame);
         }
+        writer << frame;
         
         //cv::imshow("frame", frame);
         //cv::waitKey(0);
