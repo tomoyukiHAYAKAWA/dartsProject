@@ -17,25 +17,34 @@ int main(int argc, const char * argv[])
 {
     // 入力映像
     cv::VideoCapture inputVideo(FILE_NAME);
-    
+    int frameCount = inputVideo.get(CV_CAP_PROP_FRAME_COUNT);
+    int nowFrame = 0;
+
     // 動画切り出し用のフレーム
     cv::Mat frame;
+    cv::Mat finalFrame;
     cv::Mat hsv_img;
     cv::Mat dst_img;
     cv::Mat result_img;
     
     // 座標記録配列
     std::vector<cv::Point> flightPoint;
+    // 初期値の入力
+    flightPoint.push_back(cv::Point(1000,1000));
     
+    std::vector<cv::Scalar> colorArray;
+    colorArray.push_back(cv::Scalar(0, 0, 0));
     
-    while(1)
-    {
+    // 追跡したフレームカウント
+    int tmp = 0;
+    
+    while(1) {
         // 動画から1フレーム取り出す
         inputVideo >> frame;
-        
         if (frame.empty()) {
             break;
         }
+        nowFrame++;
         // 取り出したフレームから緑の領域を抽出
         // 色変換 HSV
         
@@ -64,8 +73,6 @@ int main(int argc, const char * argv[])
         
         int nLab = cv::connectedComponentsWithStats(dst_img, LabelImg, stats, centroids);
         
-        
-        
         //重心の出力
         for (int i = 1; i < nLab; ++i) {
             double *centerParam = centroids.ptr<double>(i);
@@ -73,22 +80,40 @@ int main(int argc, const char * argv[])
             
             int are = areaParam[cv::ConnectedComponentsTypes::CC_STAT_AREA];
             
+            // 面積で判別
             if (100 < are) {
+                // 座標の取得
                 int x = static_cast<int>(centerParam[0]);
                 int y = static_cast<int>(centerParam[1]);
+                
                 cv::Point pos;
                 pos.x = x;
                 pos.y = y;
+                
+                //std::cout << flightPoint[tmp-1].x << ":" << pos.x << std::endl;
+                
+                // 一個前と現在を比較
+                if (flightPoint[tmp-1].x <= pos.x) {
+                    colorArray.push_back(cv::Scalar(0, 0, 255));
+                } else {
+                    colorArray.push_back(cv::Scalar(255, 0, 0));
+                }
+                
                 // 中心座標を配列に加える
                 flightPoint.push_back(pos);
-                // 描画
-                cv::circle(frame, cv::Point(x, y), 3, cv::Scalar(0, 0, 255), -1);
+                tmp++;
             }
+            
         }
         
         // 座標配列の長さ分だけりループ
         for (int i = 0; i < flightPoint.size(); i++) {
-            cv::circle(frame, flightPoint[i], 3, cv::Scalar(0, 0, 255), -1);
+            cv::circle(frame, flightPoint[i], 3, colorArray[i], -1);
+        }
+         // 最終フレームに描画
+        if (frameCount == nowFrame) {
+            // 画像保存
+            cv::imwrite("result.jpg", frame);
         }
         
         //cv::imshow("frame", frame);
@@ -96,10 +121,6 @@ int main(int argc, const char * argv[])
         //cv::imshow("result", dst_img);
         
     }
-   
-    // 最終フレームに描画
-    
-    // 画像保存
     
     return 0;
 }
